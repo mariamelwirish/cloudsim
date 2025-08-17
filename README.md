@@ -4,4 +4,4 @@ Note (This fork): This repository is a modified CloudSim used to compare VM allo
 
 
 Run the comparison in 
-``org.cloudbus.cloudsim.examples.AlgorihmsComparison.java``
+``org.cloudbus.cloudsim.examples.AlgorithmsComparison.java``
