@@ -1,6 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 ### Ansible template
 *.retry
+*.idea
 
 ### macOS template
 # General
