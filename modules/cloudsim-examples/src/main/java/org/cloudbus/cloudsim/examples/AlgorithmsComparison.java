@@ -12,6 +12,9 @@ import scpsolver.lpsolver.LinearProgramSolver;
 import scpsolver.lpsolver.SolverFactory;
 import scpsolver.problems.LinearProgram;
 import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 
 public class AlgorithmsComparison {
@@ -22,24 +25,28 @@ public class AlgorithmsComparison {
 
     /** Global Variables for all algorithms **/
     // General
-    static final int NUM_HOSTS =4;
-    static final int NUM_VMS = 25;
-    static final int MONTE_CARLO_ITERS = 100;
+    static int NUM_HOSTS =3;
+    static int NUM_VMS = 3;
+    static int MAX_VMS = 21;
+    static int INCREMENT_VAL = 3;
+    static int MONTE_CARLO_ITERS = 100;
 
     // Hosts Specs
-    static double[] C = new double[NUM_HOSTS];
-    static double[] M = new double[NUM_HOSTS];
-    static double[] N = new double[NUM_HOSTS];
-    static double[] D = new double[NUM_HOSTS];
+    static double[] C;
+    static double[] M;
+    static double[] N;
+    static double[] D;
 
     // VMs Specs
-    static double[] c = new double[NUM_VMS];
-    static double[] m = new double[NUM_VMS];
-    static double[] n = new double[NUM_VMS];
-    static double[] d = new double[NUM_VMS];
+    static double[] c;
+    static double[] m;
+    static double[] n;
+    static double[] d;
 
     // Flag for CSVWriter append
     static boolean flag;
+
+    //static int VMs = 0;
 
     // Hard coded examples for debugging
 //    static double[] C = {80, 60, 50, 90, 30, 65};
@@ -148,7 +155,7 @@ public class AlgorithmsComparison {
                 netTotal += h.getBw();
                 netAvail += h.getGuestBwProvisioner().getAvailableBw();
 
-                diskTotal = ((Host) h).getMaxStorage();
+                diskTotal += ((Host) h).getMaxStorage();
                 diskAvail += h.getStorage();
             }
 
@@ -157,24 +164,34 @@ public class AlgorithmsComparison {
             long   netUsed = netTotal - netAvail;
             long   diskUsed = diskTotal - diskAvail;
 
-            String file = name + ".csv";
+            final String file = name + ".csv";
+
+            Path RESULTS_DIR = Paths.get("../results/CSV Files/");
+            java.nio.file.Files.createDirectories(RESULTS_DIR);
+            Path outFile = RESULTS_DIR.resolve(file);
+
             java.io.File f = new java.io.File(file);
-            try (CSVWriter w = new CSVWriter(new FileWriter(file, flag))) {
-                if (!f.exists() || f.length() == 0) {
+
+
+            try (com.opencsv.CSVWriter w = new com.opencsv.CSVWriter(new java.io.FileWriter(outFile.toFile(), flag))) {
+                boolean header =  java.nio.file.Files.notExists(outFile) || java.nio.file.Files.size(outFile) == 0;
+                if (header) {
                     w.writeNext(new String[]{
-                            "placedVMs",
-                            "cpuUsed","cpuTotal",
-                            "ramUsedMB","ramTotalMB",
-                            "netUsedMBps","netTotalMBps",
-                            "diskUsedMB","diskTotalMB"
+                            "placedVMs", "numVMs",
+                            "allocRate",
+                            "cpuUtilRate",
+                            "ramUtilRate",
+                            "netUtilRate",
+                            "diskUtilRate"
                     });
                 }
                 w.writeNext(new String[]{
-                        String.valueOf(allocated),
-                        String.valueOf((long)cpuUsed), String.valueOf((long)cpuTotal),
-                        String.valueOf(ramUsed),        String.valueOf(ramTotal),
-                        String.valueOf(netUsed),        String.valueOf(netTotal),
-                        String.valueOf(diskUsed),       String.valueOf(diskTotal)
+                        String.valueOf(allocated), String.valueOf(NUM_VMS),
+                        String.valueOf((float) allocated / (float) NUM_VMS * 100.0),
+                        String.valueOf((double)cpuUsed / (double)cpuTotal * 100.0),
+                        String.valueOf((float) ramUsed / ramTotal * 100.0),
+                        String.valueOf((float) netUsed / (float) netTotal * 100.0),
+                        String.valueOf((float) diskUsed / (float) diskTotal * 100.0)
                 });
             }
             broker.clearDatacenters();
@@ -193,7 +210,7 @@ public class AlgorithmsComparison {
         return allocated;
     }
 
-    public static int SCPSolver(double[] C, double[] M, double[] N, double[] D, double[] c, double[] m, double[] n, double[] d, int numHosts, int numVMs) {
+    public static int SCPSolver(double[] C, double[] M, double[] N, double[] D, double[] c, double[] m, double[] n, double[] d, int numHosts, int numVMs) throws IOException {
 
         // 1. Set objective function (maximize number of allocated VMs)
         // Variables are ordered as: x_11, x_12, ..., x_1n, x_21, x_22, ..., x_2n, ..., x_m1, x_m2, ..., x_mn
@@ -305,12 +322,12 @@ public class AlgorithmsComparison {
                         bw += n[j];
                         disk += d[j];
                     }
-                    // Calculating total used sources for CSVWriter
-                    cpuUsed  += cpu;
-                    ramUsed  += (long) ram;
-                    bwUsed  += (long) bw;
-                    diskUsed += (long) disk;
                 }
+                // Calculating total used sources for CSVWriter
+                cpuUsed  += cpu;
+                ramUsed  += (long) ram;
+                bwUsed  += (long) bw;
+                diskUsed += (long) disk;
                 System.out.printf("Host %d: CPU: %.1f/%.1f, RAM: %.1f/%.1f, Network: %.1f/%.1f, Disk: %.1f/%.1f%n",
                         i, cpu, C[i], ram, M[i], bw, N[i], disk, D[i]);
             }
@@ -336,23 +353,31 @@ public class AlgorithmsComparison {
         }
 
         final String file = "SCPSolver.csv";
+
+        Path RESULTS_DIR = Paths.get("../results/CSV Files/");
+        java.nio.file.Files.createDirectories(RESULTS_DIR);
+        Path outFile = RESULTS_DIR.resolve("SCPSolver.csv");
+
         java.io.File f = new java.io.File(file);
-        try (com.opencsv.CSVWriter w = new com.opencsv.CSVWriter(new java.io.FileWriter(file, flag))) {
-            if (!f.exists() || f.length() == 0) {
+        try (com.opencsv.CSVWriter w = new com.opencsv.CSVWriter(new java.io.FileWriter(outFile.toFile(), flag))) {
+            boolean header =  java.nio.file.Files.notExists(outFile) || java.nio.file.Files.size(outFile) == 0;
+            if (header) {
                 w.writeNext(new String[]{
-                        "placedVMs",
-                        "cpuUsed","cpuTotal",
-                        "ramUsedMB","ramTotalMB",
-                        "netUsedMBps","netTotalMBps",
-                        "diskUsedMB","diskTotalMB"
+                        "placedVMs","numVMs",
+                        "allocRate",
+                        "cpuUtilRate",
+                        "ramUtilRate",
+                        "netUtilRate",
+                        "diskUtilRate"
                 });
             }
             w.writeNext(new String[]{
-                    String.valueOf(num_allocated),
-                    String.valueOf((long)cpuUsed),  String.valueOf((long)cpuTotal),
-                    String.valueOf(ramUsed),        String.valueOf(ramTotal),
-                    String.valueOf(bwUsed),        String.valueOf(bwTotal),
-                    String.valueOf(diskUsed),       String.valueOf(diskTotal)
+                    String.valueOf(num_allocated), String.valueOf(NUM_VMS),
+                    String.valueOf((float) num_allocated / (float) NUM_VMS * 100.0),
+                    String.valueOf((double)cpuUsed / (double)cpuTotal * 100.0),
+                    String.valueOf((float) ramUsed / ramTotal * 100.0),
+                    String.valueOf((float) bwUsed / (float) bwTotal * 100.0),
+                    String.valueOf((float) diskUsed / (float) diskTotal * 100.0)
             });
         } catch (Exception e) {
             e.printStackTrace();
@@ -413,28 +438,55 @@ public class AlgorithmsComparison {
         }
     }
 
-    public static void main(String[] args) {
-        long sumSCP = 0, sumFF = 0, sumMF = 0, sumLF = 0, sumRD = 0;
+    public static void main(String[] args) throws IOException {
+        final int COL_SCP = 0, COL_FF = 1, COL_MF = 2, COL_LF = 3, COL_RD = 4, START_VMS = NUM_VMS;
+        int rows = (MAX_VMS / INCREMENT_VAL), row = 0;
+        double[][] results = new double[rows][5];
 
-        for (int t = 0; t < MONTE_CARLO_ITERS; t++) {
-            randomizeSpecs();
-            sumSCP  += SCPSolver(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
-            sumFF += algorithm(new SelectionPolicyFirstFit<>());
-            sumMF += algorithm(new SelectionPolicyMostFull<>());
-            sumLF += algorithm(new SelectionPolicyLeastFull<>());
-            sumRD += algorithm(new SelectionPolicyRandomSelection<>());
-            if(!flag) flag = true;
+        for(; NUM_VMS <= MAX_VMS; NUM_VMS += INCREMENT_VAL, row++) {
+            // Hosts Specs
+            C = new double[NUM_HOSTS];
+            M = new double[NUM_HOSTS];
+            N = new double[NUM_HOSTS];
+            D = new double[NUM_HOSTS];
+
+            // VMs Specs
+            c = new double[NUM_VMS];
+            m = new double[NUM_VMS];
+            n = new double[NUM_VMS];
+            d = new double[NUM_VMS];
+            long sumSCP = 0, sumFF = 0, sumMF = 0, sumLF = 0, sumRD = 0;
+            for (int t = 0; t < MONTE_CARLO_ITERS; t++) {
+                randomizeSpecs();
+                sumSCP  += SCPSolver(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
+                sumFF += algorithm(new SelectionPolicyFirstFit<>());
+                sumMF += algorithm(new SelectionPolicyMostFull<>());
+                sumLF += algorithm(new SelectionPolicyLeastFull<>());
+                sumRD += algorithm(new SelectionPolicyRandomSelection<>());
+                if(!flag) flag = true;
+            }
+            double total = (double) MONTE_CARLO_ITERS * NUM_VMS; // MC runs × requested VMs
+            results[row][COL_SCP] = 100.0 * sumSCP / total;
+            results[row][COL_FF]  = 100.0 * sumFF  / total;
+            results[row][COL_MF]  = 100.0 * sumMF  / total;
+            results[row][COL_LF]  = 100.0 * sumLF  / total;
+            results[row][COL_RD]  = 100.0 * sumRD  / total;
         }
         flag = false;
 
-        double totalReq = MONTE_CARLO_ITERS * NUM_VMS; // total VMs requested across all runs
+        System.out.println("\n\t\t\t=== Results Matrix (Allocation Rate %) ===\n");
+        System.out.println("numVMs\t\tSCPSolver\t\tFirst Fit\t\tMost Full\t\tLeast Full\t\tRandom");
 
-        System.out.println("\n=== Monte Carlo Results over " + MONTE_CARLO_ITERS + " runs ===");
-        System.out.printf("SCPSolver  avg rate: %.2f%%%n", 100.0 * sumSCP / totalReq);
-        System.out.printf("FirstFit  avg rate: %.2f%%%n", 100.0 * sumFF  / totalReq);
-        System.out.printf("MostFull  avg rate: %.2f%%%n", 100.0 * sumMF  / totalReq);
-        System.out.printf("LeastFull avg rate: %.2f%%%n", 100.0 * sumLF  / totalReq);
-        System.out.printf("Random    avg rate: %.2f%%%n", 100.0 * sumRD  / totalReq);
+        for (int i = 0; i < results.length; i++) {
+            int vmsAtRow = START_VMS + i * INCREMENT_VAL;
+            System.out.print(vmsAtRow + "\t\t\t");
+            for (int j = 0; j < results[i].length; j++) {
+                System.out.printf("%.2f%%\t\t\t", results[i][j]);
+            }
+            System.out.println();
+        }
+
+
     }
 
 
