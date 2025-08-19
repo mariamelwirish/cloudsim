@@ -1,0 +1,3 @@
+py -m venv .venv
+.\.venv\Scripts\Activate
+python -m pip install pandas matplotlib
