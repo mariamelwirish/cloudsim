@@ -25,11 +25,11 @@ public class AlgorithmsComparison {
 
     /** Global Variables for all algorithms **/
     // General
-    static int NUM_HOSTS =3;
+    static int NUM_HOSTS =4;
     static int NUM_VMS = 3;
-    static int MAX_VMS = 21;
+    static int MAX_VMS = 25;
     static int INCREMENT_VAL = 3;
-    static int MONTE_CARLO_ITERS = 100;
+    static int MONTE_CARLO_ITERS = 1000;
 
     // Hosts Specs
     static double[] C;

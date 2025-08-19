@@ -47,9 +47,9 @@ def plot_metric(col, title):
         return
 
     # Ticks
-    XTICKS = list(range(3, 22, 3))
+    # XTICKS = list(range(3, 22, 3))
     # YTICKS = list(range(0, 101, 10))
-    ticks = sorted(all_ticks) or XTICKS
+    ticks = sorted(all_ticks) 
     plt.xticks(ticks, [str(t) for t in ticks])
     # plt.yticks(YTICKS, [str(t) for t in YTICKS])
 
