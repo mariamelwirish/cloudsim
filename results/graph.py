@@ -37,7 +37,6 @@ def plot_metric(col, title):
             continue
         df = load_cols(fname, algo, [col])
         agg = df.groupby("numVMs", as_index=False)[col].mean()
-        agg["numVMs"] = agg["numVMs"].astype(int)
         plt.plot(agg["numVMs"], agg[col], marker="o", label=algo)
         all_ticks.update(agg["numVMs"].tolist())
         any_plotted = True
@@ -47,7 +46,7 @@ def plot_metric(col, title):
         plt.close()
         return
 
-    # Force nice ticks
+    # Ticks
     XTICKS = list(range(3, 22, 3))
     # YTICKS = list(range(0, 101, 10))
     ticks = sorted(all_ticks) or XTICKS
