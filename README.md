@@ -61,12 +61,6 @@ A CloudSim-based simulation project to compare VM allocation algorithms over Hos
       python -m pip install pandas matplotlib
       ```
       
-      **macOS/Linux:**
-      ```bash
-      python3 -m venv .venv
-      source .venv/bin/activate
-      python -m pip install pandas matplotlib
-      ```
 
 ### 2. Generate Graphs
 
