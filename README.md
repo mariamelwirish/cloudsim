@@ -1,6 +1,6 @@
 # CloudSim Algorithms Comparison
 
-A CloudSim-based simulation project to compare VM allocation algorithms over Hosts (FirstFit, MostFull, LeastFull, Random) against an SCPSolver via Monte Carlo analysis.
+A CloudSim-based simulation project to compare VM allocation algorithms over Hosts (FirstFit, MostFull, LeastFull, Random) against SCPSolver via Monte Carlo analysis.
 
 ## Prerequisites
 
