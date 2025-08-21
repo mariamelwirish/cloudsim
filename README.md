@@ -1,6 +1,6 @@
 # CloudSim Algorithms Comparison
 
-A CloudSim-based simulation project for comparing different algorithms with Monte Carlo analysis and visualization capabilities.
+A CloudSim-based simulation project for comparing different algorithms with Monte Carlo analysis.
 
 ## Prerequisites
 
