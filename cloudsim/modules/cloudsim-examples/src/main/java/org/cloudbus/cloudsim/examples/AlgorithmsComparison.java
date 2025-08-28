@@ -210,7 +210,7 @@ public class AlgorithmsComparison {
         return allocated;
     }
 
-    public static int SCPSolver(double[] C, double[] M, double[] N, double[] D, double[] c, double[] m, double[] n, double[] d, int numHosts, int numVMs) throws IOException {
+    public static int BranchAndBoundAlgorithm(double[] C, double[] M, double[] N, double[] D, double[] c, double[] m, double[] n, double[] d, int numHosts, int numVMs) throws IOException {
 
         // 1. Set objective function (maximize number of allocated VMs)
         // Variables are ordered as: x_11, x_12, ..., x_1n, x_21, x_22, ..., x_2n, ..., x_m1, x_m2, ..., x_mn
@@ -352,11 +352,11 @@ public class AlgorithmsComparison {
             System.out.println("No feasible solution found!");
         }
 
-        final String file = "SCPSolver.csv";
+        final String file = "BranchAndBoundAlgorithm.csv";
 
         Path RESULTS_DIR = Paths.get("../results/CSV Files/");
         java.nio.file.Files.createDirectories(RESULTS_DIR);
-        Path outFile = RESULTS_DIR.resolve("SCPSolver.csv");
+        Path outFile = RESULTS_DIR.resolve("BranchAndBoundAlgorithm.csv");
 
         java.io.File f = new java.io.File(file);
         try (com.opencsv.CSVWriter w = new com.opencsv.CSVWriter(new java.io.FileWriter(outFile.toFile(), flag))) {
@@ -458,7 +458,7 @@ public class AlgorithmsComparison {
             long sumSCP = 0, sumFF = 0, sumMF = 0, sumLF = 0, sumRD = 0;
             for (int t = 0; t < MONTE_CARLO_ITERS; t++) {
                 randomizeSpecs();
-                sumSCP  += SCPSolver(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
+                sumSCP  += BranchAndBoundAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
                 sumFF += algorithm(new SelectionPolicyFirstFit<>());
                 sumMF += algorithm(new SelectionPolicyMostFull<>());
                 sumLF += algorithm(new SelectionPolicyLeastFull<>());
@@ -475,7 +475,7 @@ public class AlgorithmsComparison {
         flag = false;
 
         System.out.println("\n\t\t\t=== Results Matrix (Allocation Rate %) ===\n");
-        System.out.println("numVMs\t\tSCPSolver\t\tFirst Fit\t\tMost Full\t\tLeast Full\t\tRandom");
+        System.out.println("numVMs\t Branch & Bound\t\tFirst Fit\t\tMost Full\t\tLeast Full\t\tRandom");
 
         for (int i = 0; i < results.length; i++) {
             int vmsAtRow = START_VMS + i * INCREMENT_VAL;

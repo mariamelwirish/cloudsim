@@ -34,6 +34,6 @@ public class VmAllocationPolicySimple extends VmAllocationWithSelectionPolicy {
 	 * @post $none
 	 */
 	public VmAllocationPolicySimple(List<? extends HostEntity> list) {
-		super(list, new SelectionPolicyMostFull());
+		super(list, new SelectionPolicyFirstFit());
 	}
 }
