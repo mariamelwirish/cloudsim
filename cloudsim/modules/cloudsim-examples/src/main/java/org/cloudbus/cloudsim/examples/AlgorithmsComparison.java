@@ -447,7 +447,7 @@ public class AlgorithmsComparison {
             lp.addConstraint(new LinearSmallerThanEqualsConstraint(assignmentConstraint, 1.0, "vm_assignment_" + j));
         }
 
-        // 4. Relax (0 <= x_ij <= 1, integer)
+        // 4. Relax (0 <= x_ij <= 1)
         double[] lowerBounds = new double[numVars];
         double[] upperBounds = new double[numVars];
 
@@ -702,4 +702,5 @@ public class AlgorithmsComparison {
         }
     }
 }
+
 
