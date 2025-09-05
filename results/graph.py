@@ -8,6 +8,7 @@ FILES = {
     "MostFull":        "CSV Files/SelectionPolicyMostFull.csv",
     "LeastFull":       "CSV Files/SelectionPolicyLeastFull.csv",
     "BranchAndBound":  "CSV Files/BranchAndBoundAlgorithm.csv",
+    "LinearRelaxation":  "CSV Files/LinearRelaxationAlgorithm.csv",
 }
 
 # metric column -> pretty title
@@ -88,9 +89,15 @@ def plot_metric(col, title):
     plt.grid(True, alpha=0.5)
     plt.legend(frameon=True)
     plt.tight_layout()
-    out_path = os.path.join(IMAGES_DIR, f"{title}.pdf")
-    plt.savefig(out_path, format='pdf', dpi=600, bbox_inches="tight")
-    print(f"Saved {out_path}")
+    out_path1 = os.path.join(IMAGES_DIR, f"{title}.png")
+    plt.savefig(out_path1, format='png', dpi=600, bbox_inches="tight")
+
+    out_path2 = os.path.join(IMAGES_DIR, f"{title}.pdf")
+    plt.savefig(out_path2, format='pdf', dpi=600, bbox_inches="tight")
+
+    print(f"Saved {out_path1}")
+    print(f"Saved {out_path2}")
+
     plt.close()
 
 def make_summary_table():

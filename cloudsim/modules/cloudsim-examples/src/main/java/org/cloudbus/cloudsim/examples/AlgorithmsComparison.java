@@ -273,6 +273,7 @@ public class AlgorithmsComparison {
         }
 
         // 5. Solve the problem
+        System.out.println("\nBranch and Bound: \n");
         LinearProgramSolver solver = SolverFactory.newDefault();
         double[] solution = solver.solve(lp);
         int num_allocated =  (int)lp.evaluate(solution);
@@ -388,6 +389,218 @@ public class AlgorithmsComparison {
 
     }
 
+
+    public static int LinearRelaxationAlgorithm(double[] C, double[] M, double[] N, double[] D, double[] c, double[] m, double[] n, double[] d, int numHosts, int numVMs) throws IOException {
+
+        // 1. Set objective function (maximize number of allocated VMs)
+        // Variables are ordered as: x_11, x_12, ..., x_1n, x_21, x_22, ..., x_2n, ..., x_m1, x_m2, ..., x_mn
+        int numVars = numHosts * numVMs; // Total number of variables (for x_ij)
+        double[] objFun = new double[numVars];
+        for (int i = 0; i < numVars; i++) {
+            objFun[i] = 1.0;
+        }
+        LinearProgram lp = new LinearProgram(objFun);
+
+        // 2. Host Resources Constraints.
+        for (int i = 0; i < numHosts; i++) {
+            // 1. CPU Constraint: ∑j c_j * x_ij <= C_i
+            double[] cpuConstraint = new double[numVars];
+            for (int j = 0; j < numVMs; j++) {
+                int index = i * numVMs + j;
+                cpuConstraint[index] = c[j];
+            }
+            lp.addConstraint(new LinearSmallerThanEqualsConstraint(cpuConstraint, C[i], "cpu_host_" + i));
+
+            // 2. RAM Constraint: ∑j m_j * x_ij <= M_i
+            double[] ramConstraint = new double[numVars];
+            for (int j = 0; j < numVMs; j++) {
+                int index = i * numVMs + j;
+                ramConstraint[index] = m[j];
+            }
+            lp.addConstraint(new LinearSmallerThanEqualsConstraint(ramConstraint, M[i], "ram_host_" + i));
+
+            // 3. Network Bandwidth Constraint: ∑j n_j * x_ij <= N_i
+            double[] bwConstraint = new double[numVars];
+            for (int j = 0; j < numVMs; j++) {
+                int index = i * numVMs + j;
+                bwConstraint[index] = n[j];
+            }
+            lp.addConstraint(new LinearSmallerThanEqualsConstraint(bwConstraint, N[i], "network_host_" + i));
+
+            // 4. Disk Constraint: ∑j d_j * x_ij <= D_i
+            double[] diskConstraint = new double[numVars];
+            for (int j = 0; j < numVMs; j++) {
+                int index = i * numVMs + j;
+                diskConstraint[index] = d[j];
+            }
+            lp.addConstraint(new LinearSmallerThanEqualsConstraint(diskConstraint, D[i], "disk_host_" + i));
+        }
+
+        // 3. VM Assignment Constraints (each VM assigned to at most one host).
+        // For each VM j: ∑i x_ij <= 1
+        for (int j = 0; j < numVMs; j++) {
+            double[] assignmentConstraint = new double[numVars];
+            for (int i = 0; i < numHosts; i++) {
+                int varIndex = i * numVMs + j;
+                assignmentConstraint[varIndex] = 1.0;
+            }
+            lp.addConstraint(new LinearSmallerThanEqualsConstraint(assignmentConstraint, 1.0, "vm_assignment_" + j));
+        }
+
+        // 4. Relax (0 <= x_ij <= 1, integer)
+        double[] lowerBounds = new double[numVars];
+        double[] upperBounds = new double[numVars];
+
+        for (int i = 0; i < numVars; i++) {
+            lowerBounds[i] = 0.0;
+            upperBounds[i] = 1.0;
+        }
+
+        lp.setLowerbound(lowerBounds);
+        lp.setUpperbound(upperBounds);
+
+        // 5. Solve the problem
+        System.out.println("\nLinear Relaxation: \n");
+        LinearProgramSolver solver = SolverFactory.newDefault();
+        double[] solution = solver.solve(lp);
+        int num_allocated = 0;
+
+        // Calculating total resources for CSVWriter
+        double cpuTotal = 0, cpuUsed = 0;
+        long ramTotal = 0, ramUsed = 0;
+        long bwTotal = 0, bwUsed = 0;
+        long diskTotal = 0, diskUsed = 0;
+        for (int i = 0; i < numHosts; i++) {
+            cpuTotal += C[i];
+            ramTotal += (long) M[i];
+            bwTotal += (long) N[i];
+            diskTotal += (long) D[i];
+        }
+
+        // Track actual resource usage per host
+        double[] hostCpuUsed = new double[numHosts];
+        double[] hostRamUsed = new double[numHosts];
+        double[] hostBwUsed = new double[numHosts];
+        double[] hostDiskUsed = new double[numHosts];
+        for (int i = 0; i < numHosts; i++) {
+            hostCpuUsed[i] = 0.0;
+            hostRamUsed[i] = 0.0;
+            hostBwUsed[i] = 0.0;
+            hostDiskUsed[i] = 0.0;
+        }
+
+        // To track the unallocated VMs for Phase 2
+        boolean[] allocated = new boolean[numVMs];
+        for(int i = 0; i < numVMs; i++){
+            allocated[i] = false;
+        }
+
+        // Phase 1: Process LP solution where x_ij > 0.5 (rounding)
+        System.out.println("Phase 1: Processing LP solution (rounding > 0.5):");
+        for (int i = 0; i < numHosts; i++) {
+            System.out.println("Host " + (i + 1) + ":");
+            for (int j = 0; j < numVMs; j++) {
+                int varIndex = i * numVMs + j;
+                // Check if the solution suggests this assignment && VM not already allocated
+                if (solution[varIndex] > 0.5 && !allocated[j]) {
+                    // Check if adding this VM would exceed capacity
+                    if (hostCpuUsed[i] + c[j] <= C[i] && hostRamUsed[i] + m[j] <= M[i] && hostBwUsed[i] + n[j] <= N[i] && hostDiskUsed[i] + d[j] <= D[i]) {
+                        // Allocate the VM
+                        allocated[j] = true;
+                        hostCpuUsed[i] += c[j];
+                        hostRamUsed[i] += m[j];
+                        hostBwUsed[i] += n[j];
+                        hostDiskUsed[i] += d[j];
+                        num_allocated++;
+
+                        System.out.println("  VM " + j + " assigned (LP value: " +
+                                String.format("%.3f", solution[varIndex]) + ")");
+                    }
+                }
+            }
+
+            System.out.printf("Host %d: CPU: %.1f/%.1f, RAM: %.1f/%.1f, Network: %.1f/%.1f, Disk: %.1f/%.1f%n",
+                    (i + 1), hostCpuUsed[i], C[i], hostRamUsed[i], M[i],
+                    hostBwUsed[i], N[i], hostDiskUsed[i], D[i]);
+        }
+
+        // Phase 2: First-fit for remaining VMs
+        System.out.println("\nPhase 2: First-fit for remaining unallocated VMs:");
+        int phase2Allocated = 0;
+        for (int j = 0; j < numVMs; j++) {
+            if (!allocated[j]) {
+                // Try to find first host that can accommodate this VM
+                for (int i = 0; i < numHosts; i++) {
+                    if (hostCpuUsed[i] + c[j] <= C[i] && hostRamUsed[i] + m[j] <= M[i] && hostBwUsed[i] + n[j] <= N[i] && hostDiskUsed[i] + d[j] <= D[i]) {
+                        // Allocate VM to first available host
+                        allocated[j] = true;
+                        hostCpuUsed[i] += c[j];
+                        hostRamUsed[i] += m[j];
+                        hostBwUsed[i] += n[j];
+                        hostDiskUsed[i] += d[j];
+                        num_allocated++;
+                        phase2Allocated++;
+
+                        System.out.println("  VM " + j + " assigned to Host " + (i + 1) + " (First-Fit)");
+                        break; // Move to next VM
+                    }
+                }
+            }
+        }
+        System.out.println("Phase 2 allocated " + phase2Allocated + " additional VMs");
+
+        // Calculate resource usage
+        cpuUsed = 0; ramUsed = 0; bwUsed = 0; diskUsed = 0;
+        for (int i = 0; i < numHosts; i++) {
+            cpuUsed += hostCpuUsed[i];
+            ramUsed += (long) hostRamUsed[i];
+            bwUsed += (long) hostBwUsed[i];
+            diskUsed += (long) hostDiskUsed[i];
+        }
+
+        System.out.println("\n=================================================================\n");
+        System.out.println("Optimal solution found!");
+        System.out.println("Total VMs allocated: " + num_allocated);
+        System.out.println("\nFinal Resource Utilization:");
+        System.out.printf("CPU: %.1f/%.1f (%.1f%%)%n", cpuUsed, cpuTotal, (cpuUsed/cpuTotal)*100);
+        System.out.printf("RAM: %d/%d (%.1f%%)%n", ramUsed, ramTotal, ((double)ramUsed/ramTotal)*100);
+        System.out.printf("Network: %d/%d (%.1f%%)%n", bwUsed, bwTotal, ((double)bwUsed/bwTotal)*100);
+        System.out.printf("Disk: %d/%d (%.1f%%)%n", diskUsed, diskTotal, ((double)diskUsed/diskTotal)*100);
+
+        final String file = "LinearRelaxationAlgorithm.csv";
+        Path RESULTS_DIR = Paths.get("../results/CSV Files/");
+        java.nio.file.Files.createDirectories(RESULTS_DIR);
+        Path outFile = RESULTS_DIR.resolve("LinearRelaxationAlgorithm.csv");
+
+        try (com.opencsv.CSVWriter w = new com.opencsv.CSVWriter(new java.io.FileWriter(outFile.toFile(), true))) {
+            boolean header = java.nio.file.Files.notExists(outFile) || java.nio.file.Files.size(outFile) == 0;
+            if (header) {
+                w.writeNext(new String[]{
+                        "placedVMs", "numVMs",
+                        "allocRate",
+                        "cpuUtilRate",
+                        "ramUtilRate",
+                        "netUtilRate",
+                        "diskUtilRate"
+                });
+            }
+            w.writeNext(new String[]{
+                    String.valueOf(num_allocated),
+                    String.valueOf(numVMs),
+                    String.valueOf((double) num_allocated / numVMs * 100.0),
+                    String.valueOf((cpuUsed / cpuTotal) * 100.0),
+                    String.valueOf(((double) ramUsed / ramTotal) * 100.0),
+                    String.valueOf(((double) bwUsed / bwTotal) * 100.0),
+                    String.valueOf(((double) diskUsed / diskTotal) * 100.0)
+            });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return num_allocated;
+    }
+
+
     // helper for the random function
     private static int randInt(int min, int max) {
         return min + (int) Math.floor(Math.random() * (max - min + 1));
@@ -439,9 +652,9 @@ public class AlgorithmsComparison {
     }
 
     public static void main(String[] args) throws IOException {
-        final int COL_SCP = 0, COL_FF = 1, COL_MF = 2, COL_LF = 3, COL_RD = 4, START_VMS = NUM_VMS;
+        final int COL_SCP = 0, COL_LR = 1, COL_FF = 2, COL_MF = 3, COL_LF = 4, COL_RD = 5, START_VMS = NUM_VMS;
         int rows = (MAX_VMS / INCREMENT_VAL), row = 0;
-        double[][] results = new double[rows][5];
+        double[][] results = new double[rows][6];
 
         for(; NUM_VMS <= MAX_VMS; NUM_VMS += INCREMENT_VAL, row++) {
             // Hosts Specs
@@ -455,10 +668,11 @@ public class AlgorithmsComparison {
             m = new double[NUM_VMS];
             n = new double[NUM_VMS];
             d = new double[NUM_VMS];
-            long sumSCP = 0, sumFF = 0, sumMF = 0, sumLF = 0, sumRD = 0;
+            long sumSCP = 0, sumLR = 0, sumFF = 0, sumMF = 0, sumLF = 0, sumRD = 0;
             for (int t = 0; t < MONTE_CARLO_ITERS; t++) {
                 randomizeSpecs();
-                sumSCP  += BranchAndBoundAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
+                sumSCP += BranchAndBoundAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
+                sumLR += LinearRelaxationAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
                 sumFF += algorithm(new SelectionPolicyFirstFit<>());
                 sumMF += algorithm(new SelectionPolicyMostFull<>());
                 sumLF += algorithm(new SelectionPolicyLeastFull<>());
@@ -467,6 +681,7 @@ public class AlgorithmsComparison {
             }
             double total = (double) MONTE_CARLO_ITERS * NUM_VMS; // MC runs × requested VMs
             results[row][COL_SCP] = 100.0 * sumSCP / total;
+            results[row][COL_LR] = 100.0 * sumLR / total;
             results[row][COL_FF]  = 100.0 * sumFF  / total;
             results[row][COL_MF]  = 100.0 * sumMF  / total;
             results[row][COL_LF]  = 100.0 * sumLF  / total;
@@ -475,7 +690,7 @@ public class AlgorithmsComparison {
         flag = false;
 
         System.out.println("\n\t\t\t=== Results Matrix (Allocation Rate %) ===\n");
-        System.out.println("numVMs\t Branch & Bound\t\tFirst Fit\t\tMost Full\t\tLeast Full\t\tRandom");
+        System.out.println("numVMs\t Branch & Bound\t\tLinear Relaxation\t\tFirst Fit\t\tMost Full\t\tLeast Full\t\tRandom");
 
         for (int i = 0; i < results.length; i++) {
             int vmsAtRow = START_VMS + i * INCREMENT_VAL;
@@ -485,12 +700,6 @@ public class AlgorithmsComparison {
             }
             System.out.println();
         }
-
-
     }
-
-
-
-
 }
 
