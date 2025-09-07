@@ -572,7 +572,7 @@ public class AlgorithmsComparison {
         java.nio.file.Files.createDirectories(RESULTS_DIR);
         Path outFile = RESULTS_DIR.resolve("LinearRelaxationAlgorithm.csv");
 
-        try (com.opencsv.CSVWriter w = new com.opencsv.CSVWriter(new java.io.FileWriter(outFile.toFile(), true))) {
+        try (com.opencsv.CSVWriter w = new com.opencsv.CSVWriter(new java.io.FileWriter(outFile.toFile(), flag))) {
             boolean header = java.nio.file.Files.notExists(outFile) || java.nio.file.Files.size(outFile) == 0;
             if (header) {
                 w.writeNext(new String[]{
