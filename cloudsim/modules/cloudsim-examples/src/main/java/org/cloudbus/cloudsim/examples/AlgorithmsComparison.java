@@ -609,11 +609,11 @@ public class AlgorithmsComparison {
     // randomize specs for hosts and VMs.
     private static void randomizeSpecs() {
         // Hosts Ranges
-        final int C_MIN      = 1000;
-        final int C_MAX      = 10000;
+        final int C_MIN      = 5000;
+        final int C_MAX      = 50000;
 
-        final int M_MIN    = 64000;
-        final int M_MAX    = 512000;
+        final int M_MIN    = 64000; // 2^16
+        final int M_MAX    = 512000; // 2^19
 
         final int N_MIN      = 1000;
         final int N_MAX      = 10000;
@@ -625,8 +625,8 @@ public class AlgorithmsComparison {
         final int c_MIN      = 500;
         final int c_MAX      = 5000;
 
-        final int m_MIN    = 1000;
-        final int m_MAX    = 64000;
+        final int m_MIN    = 16384; // 2^14
+        final int m_MAX    = 64000; // 2^16
 
         final int n_MIN      = 100;
         final int n_MAX      = 1000;
