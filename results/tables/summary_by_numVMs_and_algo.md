@@ -1,56 +1,80 @@
 ### numVMs = 3
 
-| Algorithm        |   migrations |
-|:-----------------|-------------:|
-| BranchAndBound   |            0 |
-| LinearRelaxation |            0 |
+| Algorithm        |   AllocRate(%) |   CPU(%) |   RAM(%) |   Net(%) |   Disk(%) |
+|:-----------------|---------------:|---------:|---------:|---------:|----------:|
+| BranchAndBound   |         100    |     7.87 |     7.98 |     8.11 |      8.14 |
+| FirstFit         |          97.87 |     7.7  |     7.84 |     7.95 |      7.83 |
+| LeastFull        |          98.27 |     7.73 |     7.87 |     7.98 |      7.89 |
+| LinearRelaxation |         100    |     7.87 |     7.98 |     8.11 |      8.14 |
+| MostFull         |          97.6  |     7.7  |     7.8  |     7.94 |      7.8  |
 
 ### numVMs = 6
 
-| Algorithm        |   migrations |
-|:-----------------|-------------:|
-| BranchAndBound   |         0.34 |
-| LinearRelaxation |         0.09 |
+| Algorithm        |   AllocRate(%) |   CPU(%) |   RAM(%) |   Net(%) |   Disk(%) |
+|:-----------------|---------------:|---------:|---------:|---------:|----------:|
+| BranchAndBound   |         100    |    15.96 |    15.95 |    16.22 |     16.2  |
+| FirstFit         |          93.23 |    14.91 |    14.93 |    15.18 |     14.62 |
+| LeastFull        |          94.53 |    15.02 |    15.16 |    15.38 |     14.94 |
+| LinearRelaxation |         100    |    15.96 |    15.95 |    16.22 |     16.2  |
+| MostFull         |          93.83 |    15.06 |    15.06 |    15.28 |     14.72 |
 
 ### numVMs = 9
 
-| Algorithm        |   migrations |
-|:-----------------|-------------:|
-| BranchAndBound   |         0.97 |
-| LinearRelaxation |         0.22 |
+| Algorithm        |   AllocRate(%) |   CPU(%) |   RAM(%) |   Net(%) |   Disk(%) |
+|:-----------------|---------------:|---------:|---------:|---------:|----------:|
+| BranchAndBound   |          99.98 |    23.96 |    23.94 |    24.27 |     24.52 |
+| FirstFit         |          88.62 |    21.44 |    21.31 |    21.74 |     20.65 |
+| LeastFull        |          90.82 |    21.65 |    21.92 |    22.1  |     21.42 |
+| LinearRelaxation |          99.8  |    23.91 |    23.87 |    24.21 |     24.45 |
+| MostFull         |          90.53 |    21.92 |    21.76 |    22.11 |     21.24 |
 
 ### numVMs = 12
 
-| Algorithm        |   migrations |
-|:-----------------|-------------:|
-| BranchAndBound   |         2.08 |
-| LinearRelaxation |         0.25 |
+| Algorithm        |   AllocRate(%) |   CPU(%) |   RAM(%) |   Net(%) |   Disk(%) |
+|:-----------------|---------------:|---------:|---------:|---------:|----------:|
+| BranchAndBound   |          99.97 |    31.96 |    32.11 |    32.14 |     32.69 |
+| FirstFit         |          84.58 |    27.4  |    27.27 |    27.55 |     26.09 |
+| LeastFull        |          86.75 |    27.59 |    28.06 |    27.84 |     26.99 |
+| LinearRelaxation |          98.93 |    31.55 |    31.64 |    31.67 |     32.23 |
+| MostFull         |          87.15 |    28.3  |    27.98 |    28.24 |     27.02 |
 
 ### numVMs = 15
 
-| Algorithm        |   migrations |
-|:-----------------|-------------:|
-| BranchAndBound   |         3.85 |
-| LinearRelaxation |         0.57 |
+| Algorithm        |   AllocRate(%) |   CPU(%) |   RAM(%) |   Net(%) |   Disk(%) |
+|:-----------------|---------------:|---------:|---------:|---------:|----------:|
+| BranchAndBound   |          99.64 |    39.8  |    39.9  |    40.17 |     40.61 |
+| FirstFit         |          80.33 |    32.49 |    32.3  |    32.8  |     30.63 |
+| LeastFull        |          82.11 |    32.52 |    33.09 |    32.98 |     31.54 |
+| LinearRelaxation |          97.56 |    38.67 |    38.77 |    38.95 |     39.53 |
+| MostFull         |          83.27 |    33.76 |    33.24 |    33.69 |     31.91 |
 
 ### numVMs = 18
 
-| Algorithm        |   migrations |
-|:-----------------|-------------:|
-| BranchAndBound   |         6.08 |
-| LinearRelaxation |         1.26 |
+| Algorithm        |   AllocRate(%) |   CPU(%) |   RAM(%) |   Net(%) |   Disk(%) |
+|:-----------------|---------------:|---------:|---------:|---------:|----------:|
+| BranchAndBound   |          98.69 |    47.13 |    47.36 |    47.46 |     48.26 |
+| FirstFit         |          75.81 |    36.77 |    36.64 |    36.87 |     34.49 |
+| LeastFull        |          77.2  |    36.53 |    37.32 |    37.06 |     35.29 |
+| LinearRelaxation |          95.69 |    45.34 |    45.54 |    45.54 |     46.37 |
+| MostFull         |          78.52 |    38.18 |    37.57 |    37.86 |     35.89 |
 
 ### numVMs = 21
 
-| Algorithm        |   migrations |
-|:-----------------|-------------:|
-| BranchAndBound   |         7.88 |
-| LinearRelaxation |         1.89 |
+| Algorithm        |   AllocRate(%) |   CPU(%) |   RAM(%) |   Net(%) |   Disk(%) |
+|:-----------------|---------------:|---------:|---------:|---------:|----------:|
+| BranchAndBound   |          97.13 |    53.81 |    53.9  |    54.08 |     55.06 |
+| FirstFit         |          70.9  |    40.13 |    39.81 |    40.02 |     37.48 |
+| LeastFull        |          71.7  |    39.41 |    40.33 |    39.97 |     37.95 |
+| LinearRelaxation |          93.29 |    51.1  |    51.31 |    51.42 |     52.48 |
+| MostFull         |          73.73 |    41.84 |    40.84 |    41.35 |     39.04 |
 
 ### numVMs = 24
 
-| Algorithm        |   migrations |
-|:-----------------|-------------:|
-| BranchAndBound   |         9.33 |
-| LinearRelaxation |         2.75 |
+| Algorithm        |   AllocRate(%) |   CPU(%) |   RAM(%) |   Net(%) |   Disk(%) |
+|:-----------------|---------------:|---------:|---------:|---------:|----------:|
+| BranchAndBound   |          94.82 |    59.34 |    59.61 |    59.41 |     60.92 |
+| FirstFit         |          65.77 |    42.37 |    42.04 |    42.13 |     39.52 |
+| LeastFull        |          66.18 |    41.27 |    42.48 |    41.94 |     39.82 |
+| LinearRelaxation |          90.48 |    56.14 |    56.37 |    56.33 |     57.55 |
+| MostFull         |          68.5  |    44.3  |    43.19 |    43.56 |     41.21 |
 

@@ -1,0 +1,17 @@
+numVMs,algo,migrations
+3,BranchAndBound,0.0
+3,LinearRelaxation,0.0
+6,BranchAndBound,0.33
+6,LinearRelaxation,0.1
+9,BranchAndBound,0.98
+9,LinearRelaxation,0.24
+12,BranchAndBound,2.16
+12,LinearRelaxation,0.41
+15,BranchAndBound,3.78
+15,LinearRelaxation,0.65
+18,BranchAndBound,5.85
+18,LinearRelaxation,1.21
+21,BranchAndBound,7.77
+21,LinearRelaxation,1.77
+24,BranchAndBound,9.49
+24,LinearRelaxation,2.42

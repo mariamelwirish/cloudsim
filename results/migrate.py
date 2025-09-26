@@ -78,7 +78,7 @@ def plot_metric(col, title):
 
     plt.title(f"{title} vs #VMs (over 4 Hosts)")
     plt.xlabel("#VMs")
-    plt.ylabel(f"{title} (%)")
+    plt.ylabel(f"{title}")
     plt.grid(True, alpha=0.5)
     plt.legend(frameon=True)
     plt.tight_layout()
@@ -123,11 +123,11 @@ def make_summary_table():
     for col, _ in METRICS:
         summary_rounded[col] = summary_rounded[col].round(2)
 
-    csv_path = os.path.join(TABLES_DIR, "summary_by_numVMs_and_algo.csv")
+    csv_path = os.path.join(TABLES_DIR, "mig_summary.csv")
     summary_rounded.to_csv(csv_path, index=False)
     print(f"Saved {csv_path}")
 
-    md_path = os.path.join(TABLES_DIR, "summary_by_numVMs_and_algo.md")
+    md_path = os.path.join(TABLES_DIR, "mig_summary.md")
     with open(md_path, "w", encoding="utf-8") as f:
         for v in sorted(summary_rounded["numVMs"].unique()):
             sub = summary_rounded[summary_rounded["numVMs"] == v]
@@ -136,7 +136,7 @@ def make_summary_table():
                 sub[["algo"] + [m[0] for m in METRICS]]
                 .rename(columns={
                     "algo": "Algorithm",
-                    "migrationRate": "MigRate(%)"
+                    "migrationRate": "MigRate"
                 })
                 .to_markdown(index=False)
             )

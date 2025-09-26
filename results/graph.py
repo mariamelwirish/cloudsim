@@ -18,7 +18,7 @@ METRICS = [
     ("ramUtilRate","RAM Utilization Rate"),
     ("netUtilRate","Network Utilization Rate"),
     ("diskUtilRate","Disk Utilization Rate"),
-    ("migrationRate","Migration Rate"),
+    # ("migrationRate","Migration Rate"),
 ]
 
 STYLES = {
