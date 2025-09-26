@@ -240,4 +240,6 @@ public abstract class VmScheduler {
 
 	@Deprecated
 	public Map<String, List<Double>> getMipsMap() { return mipsMapAllocated; }
+
+
 }

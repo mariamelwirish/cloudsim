@@ -1,8 +1,11 @@
 package org.cloudbus.cloudsim.examples;
 import com.opencsv.CSVWriter;
 import org.cloudbus.cloudsim.*;
+import org.cloudbus.cloudsim.container.core.ContainerVm;
 import org.cloudbus.cloudsim.core.CloudSim;
+import org.cloudbus.cloudsim.core.GuestEntity;
 import org.cloudbus.cloudsim.core.HostEntity;
+import org.cloudbus.cloudsim.lists.VmList;
 import org.cloudbus.cloudsim.provisioners.BwProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.PeProvisionerSimple;
 import org.cloudbus.cloudsim.provisioners.RamProvisionerSimple;
@@ -27,9 +30,9 @@ public class AlgorithmsComparison {
     // General
     static int NUM_HOSTS =4;
     static int NUM_VMS = 3;
-    static int MAX_VMS = 25;
+    static int MAX_VMS = 24;
     static int INCREMENT_VAL = 3;
-    static int MONTE_CARLO_ITERS = 1000;
+    static int MONTE_CARLO_ITERS = 500;
 
     // Hosts Specs
     static double[] C;
@@ -45,6 +48,12 @@ public class AlgorithmsComparison {
 
     // Flag for CSVWriter append
     static boolean flag;
+
+    static int [] bbMig;
+    static int [] lrMig;
+    static int [] lfMig;
+    static int [] mfMig;
+    static int [] ffMig;
 
     //static int VMs = 0;
 
@@ -62,6 +71,7 @@ public class AlgorithmsComparison {
 
     public static int algorithm(SelectionPolicy<HostEntity> selectionPolicy) {
         int allocated = 0;
+        int migrations = 0;
         try {
             // First step: Initialize the CloudSim package. It should be called before creating any entities.
             int num_user = 1; // number of cloud users
@@ -131,6 +141,20 @@ public class AlgorithmsComparison {
             // Fifth step: Starts the simulation
             CloudSim.startSimulation();
             allocated = broker.getAllocatedVMs();
+            for (int i = 0; i < NUM_VMS; i++) {
+                GuestEntity guest = VmList.getById(broker.getGuestList(), i);
+                int host = ((guest.getHost() == null) ? -1 : guest.getHost().getId());
+                if(host != -1) {
+                    if(lfMig[i] == -1) {
+                        lfMig[i] = host;
+                    }
+                    else if(lfMig[i] != host) {
+                        lfMig[i] = host;
+                        migrations++;
+                    }
+                }
+            }
+
             Log.println("VMs allocated: " + (broker.getAllocatedVMs()));
 //            for(HostEntity host : datacenter.getHostList()) {
 //                Log.println(host.getNumberOfGuests());
@@ -207,7 +231,7 @@ public class AlgorithmsComparison {
             Log.println("Unwanted errors happen");
         }
         System.out.println("\n=================================================================\n");
-        return allocated;
+        return migrations;
     }
 
     public static int BranchAndBoundAlgorithm(double[] C, double[] M, double[] N, double[] D, double[] c, double[] m, double[] n, double[] d, int numHosts, int numVMs) throws IOException {
@@ -293,7 +317,7 @@ public class AlgorithmsComparison {
             bwTotal  += (long) N[i];
             diskTotal += (long) D[i];
         }
-
+        int migrations = 0;
         if (solution != null) {
             System.out.println("\n=================================================================\n");
             System.out.println("Optimal solution found!");
@@ -305,6 +329,14 @@ public class AlgorithmsComparison {
                 for (int j = 0; j < numVMs; j++) {
                     int varIndex = i * numVMs + j;
                     if (solution[varIndex] >= 0.5) {  // Binary variable, check if assigned
+                        if(bbMig[j] == -1) {
+                            bbMig[j] = i;
+                        }
+                        else if(bbMig[j] != i) {
+                            bbMig[j] = i;
+                            migrations++;
+                        }
+
                         System.out.println("  VM " + (j) + " assigned");
                         totalAllocated++;
                     }
@@ -353,13 +385,15 @@ public class AlgorithmsComparison {
             System.out.println("No feasible solution found!");
         }
 
-        final String file = "BranchAndBoundAlgorithm.csv";
+        double migrationRate = (NUM_VMS > 0) ? ((double) migrations / NUM_VMS) * 100.0 : 0.0;
+        System.out.println("Migrations: " + migrations + " out of " + NUM_VMS + " VMs");
+        System.out.println("Migration Rate: " + String.format("%.2f%%", migrationRate));
 
+        final String file = "BranchAndBoundAlgorithm.csv";
         Path RESULTS_DIR = Paths.get("../results/CSV Files/");
         java.nio.file.Files.createDirectories(RESULTS_DIR);
         Path outFile = RESULTS_DIR.resolve("BranchAndBoundAlgorithm.csv");
 
-        java.io.File f = new java.io.File(file);
         try (com.opencsv.CSVWriter w = new com.opencsv.CSVWriter(new java.io.FileWriter(outFile.toFile(), flag))) {
             boolean header =  java.nio.file.Files.notExists(outFile) || java.nio.file.Files.size(outFile) == 0;
             if (header) {
@@ -369,22 +403,27 @@ public class AlgorithmsComparison {
                         "cpuUtilRate",
                         "ramUtilRate",
                         "netUtilRate",
-                        "diskUtilRate"
+                        "diskUtilRate",
+                        "migrations",
+                        "migrationRate"
                 });
             }
             w.writeNext(new String[]{
-                    String.valueOf(num_allocated), String.valueOf(NUM_VMS),
+                    String.valueOf(num_allocated),
+                    String.valueOf(NUM_VMS),
                     String.valueOf((float) num_allocated / (float) NUM_VMS * 100.0),
                     String.valueOf((double)cpuUsed / (double)cpuTotal * 100.0),
                     String.valueOf((float) ramUsed / ramTotal * 100.0),
                     String.valueOf((float) bwUsed / (float) bwTotal * 100.0),
-                    String.valueOf((float) diskUsed / (float) diskTotal * 100.0)
+                    String.valueOf((float) diskUsed / (float) diskTotal * 100.0),
+                    String.valueOf(migrations),
+                    String.valueOf(migrationRate)
             });
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return num_allocated;
+        return migrations;
 
 
     }
@@ -495,6 +534,7 @@ public class AlgorithmsComparison {
             allocated[i] = false;
         }
 
+        int migrations = 0;
         // Phase 1: Process LP solution where x_ij > 0.5 (rounding)
         System.out.println("Phase 1: Processing LP solution (rounding > 0.5):");
         for (int i = 0; i < numHosts; i++) {
@@ -505,6 +545,7 @@ public class AlgorithmsComparison {
                 if (solution[varIndex] > 0.5 && !allocated[j]) {
                     // Check if adding this VM would exceed capacity
                     if (hostCpuUsed[i] + c[j] <= C[i] && hostRamUsed[i] + m[j] <= M[i] && hostBwUsed[i] + n[j] <= N[i] && hostDiskUsed[i] + d[j] <= D[i]) {
+
                         // Allocate the VM
                         allocated[j] = true;
                         hostCpuUsed[i] += c[j];
@@ -515,6 +556,14 @@ public class AlgorithmsComparison {
 
                         System.out.println("  VM " + j + " assigned (LP value: " +
                                 String.format("%.3f", solution[varIndex]) + ")");
+
+                        if(lrMig[j] == -1) {
+                            lrMig[j] = i;
+                        }
+                        else if(lrMig[j] != i) {
+                            lrMig[j] = i;
+                            migrations++;
+                        }
                     }
                 }
             }
@@ -542,6 +591,15 @@ public class AlgorithmsComparison {
                         phase2Allocated++;
 
                         System.out.println("  VM " + j + " assigned to Host " + (i + 1) + " (First-Fit)");
+
+                        if(lrMig[j] == -1) {
+                            lrMig[j] = i;
+                        }
+                        else if(lrMig[j] != i) {
+                            lrMig[j] = i;
+                            migrations++;
+                        }
+
                         break; // Move to next VM
                     }
                 }
@@ -567,6 +625,10 @@ public class AlgorithmsComparison {
         System.out.printf("Network: %d/%d (%.1f%%)%n", bwUsed, bwTotal, ((double)bwUsed/bwTotal)*100);
         System.out.printf("Disk: %d/%d (%.1f%%)%n", diskUsed, diskTotal, ((double)diskUsed/diskTotal)*100);
 
+        double migrationRate = (numVMs > 0) ? ((double) migrations / numVMs) * 100.0 : 0.0;
+        System.out.println("Migrations: " + migrations + " out of " + numVMs + " VMs");
+        System.out.println("Migration Rate: " + String.format("%.2f%%", migrationRate));
+
         final String file = "LinearRelaxationAlgorithm.csv";
         Path RESULTS_DIR = Paths.get("../results/CSV Files/");
         java.nio.file.Files.createDirectories(RESULTS_DIR);
@@ -581,7 +643,9 @@ public class AlgorithmsComparison {
                         "cpuUtilRate",
                         "ramUtilRate",
                         "netUtilRate",
-                        "diskUtilRate"
+                        "diskUtilRate",
+                        "migrations",
+                        "migrationRate"
                 });
             }
             w.writeNext(new String[]{
@@ -591,13 +655,15 @@ public class AlgorithmsComparison {
                     String.valueOf((cpuUsed / cpuTotal) * 100.0),
                     String.valueOf(((double) ramUsed / ramTotal) * 100.0),
                     String.valueOf(((double) bwUsed / bwTotal) * 100.0),
-                    String.valueOf(((double) diskUsed / diskTotal) * 100.0)
+                    String.valueOf(((double) diskUsed / diskTotal) * 100.0),
+                    String.valueOf(migrations),
+                    String.valueOf(migrationRate)
             });
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return num_allocated;
+        return migrations;
     }
 
 
@@ -609,11 +675,11 @@ public class AlgorithmsComparison {
     // randomize specs for hosts and VMs.
     private static void randomizeSpecs() {
         // Hosts Ranges
-        final int C_MIN      = 5000;
-        final int C_MAX      = 50000;
+        final int C_MIN      = 100000;
+        final int C_MAX      = 1000000;
 
         final int M_MIN    = 64000; // 2^16
-        final int M_MAX    = 512000; // 2^19
+        final int M_MAX    = 640000; // 2^19
 
         final int N_MIN      = 1000;
         final int N_MAX      = 10000;
@@ -622,10 +688,10 @@ public class AlgorithmsComparison {
         final int D_MAX        = 10000;
 
         // VMs Ranges
-        final int c_MIN      = 500;
-        final int c_MAX      = 5000;
+        final int c_MIN      = 10000;
+        final int c_MAX      = 100000;
 
-        final int m_MIN    = 16384; // 2^14
+        final int m_MIN    = 6400; // 2^14
         final int m_MAX    = 64000; // 2^16
 
         final int n_MIN      = 100;
@@ -635,7 +701,7 @@ public class AlgorithmsComparison {
         final int d_MAX        = 1000;
 
         // Hosts Random Assignment
-        for (int i = 0; i < NUM_HOSTS; i++) {
+        for (int i = 0; i < C.length; i++) {
             C[i] = randInt(C_MIN, C_MAX);
             M[i] = randInt(M_MIN, M_MAX);
             N[i] = randInt(N_MIN, N_MAX);
@@ -643,7 +709,7 @@ public class AlgorithmsComparison {
         }
 
         // VMs Random Assignment
-        for (int j = 0; j < NUM_VMS; j++) {
+        for (int j = 0; j < c.length; j++) {
             c[j] = randInt(c_MIN, c_MAX);
             m[j] = randInt(m_MIN, m_MAX);
             n[j] = randInt(n_MIN, n_MAX);
@@ -656,50 +722,66 @@ public class AlgorithmsComparison {
         int rows = (MAX_VMS / INCREMENT_VAL), row = 0;
         double[][] results = new double[rows][6];
 
-        for(; NUM_VMS <= MAX_VMS; NUM_VMS += INCREMENT_VAL, row++) {
-            // Hosts Specs
+        for (int t = 0; t < MONTE_CARLO_ITERS; t++) {
+            NUM_VMS = START_VMS;
+            bbMig = new int[MAX_VMS+1];
+            lrMig = new int[MAX_VMS+1];
+            lfMig = new int[MAX_VMS+1];
+            Arrays.fill(bbMig, -1);
+            Arrays.fill(lrMig, -1);
+            Arrays.fill(lfMig, -1);
             C = new double[NUM_HOSTS];
             M = new double[NUM_HOSTS];
             N = new double[NUM_HOSTS];
             D = new double[NUM_HOSTS];
 
             // VMs Specs
-            c = new double[NUM_VMS];
-            m = new double[NUM_VMS];
-            n = new double[NUM_VMS];
-            d = new double[NUM_VMS];
+            c = new double[MAX_VMS+1];
+            m = new double[MAX_VMS+1];
+            n = new double[MAX_VMS+1];
+            d = new double[MAX_VMS+1];
+            randomizeSpecs();
             long sumSCP = 0, sumLR = 0, sumFF = 0, sumMF = 0, sumLF = 0, sumRD = 0;
-            for (int t = 0; t < MONTE_CARLO_ITERS; t++) {
-                randomizeSpecs();
+            for(; NUM_VMS <= MAX_VMS; NUM_VMS += INCREMENT_VAL, row++) {
+                // Hosts Specs
+
+
+                System.out.println("  Testing with " +  NUM_VMS  + " VMs");
                 sumSCP += BranchAndBoundAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
                 sumLR += LinearRelaxationAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
                 sumFF += algorithm(new SelectionPolicyFirstFit<>());
                 sumMF += algorithm(new SelectionPolicyMostFull<>());
                 sumLF += algorithm(new SelectionPolicyLeastFull<>());
-                sumRD += algorithm(new SelectionPolicyRandomSelection<>());
+//                sumRD += algorithm(new SelectionPolicyRandomSelection<>());
                 if(!flag) flag = true;
             }
-            double total = (double) MONTE_CARLO_ITERS * NUM_VMS; // MC runs × requested VMs
-            results[row][COL_SCP] = 100.0 * sumSCP / total;
-            results[row][COL_LR] = 100.0 * sumLR / total;
-            results[row][COL_FF]  = 100.0 * sumFF  / total;
-            results[row][COL_MF]  = 100.0 * sumMF  / total;
-            results[row][COL_LF]  = 100.0 * sumLF  / total;
-            results[row][COL_RD]  = 100.0 * sumRD  / total;
+//            double total = (double) MONTE_CARLO_ITERS * NUM_VMS; // MC runs × requested VMs
+//            results[row][COL_SCP] = 100.0 * sumSCP / total;
+//            results[row][COL_LR] = 100.0 * sumLR / total;
+//            results[row][COL_FF]  = 100.0 * sumFF  / total;
+//            results[row][COL_MF]  = 100.0 * sumMF  / total;
+//            results[row][COL_LF]  = 100.0 * sumLF  / total;
+//            results[row][COL_RD]  = 100.0 * sumRD  / total;
+            System.out.println("BB: " + sumSCP);
+            System.out.println("LR: " + sumLR);
+            System.out.println("FF: " + sumFF);
+            System.out.println("MF: " + sumMF);
+            System.out.println("LF: " + sumLF);
         }
         flag = false;
 
         System.out.println("\n\t\t\t=== Results Matrix (Allocation Rate %) ===\n");
-        System.out.println("numVMs\t Branch & Bound\t\tLinear Relaxation\t\tFirst Fit\t\tMost Full\t\tLeast Full\t\tRandom");
 
-        for (int i = 0; i < results.length; i++) {
-            int vmsAtRow = START_VMS + i * INCREMENT_VAL;
-            System.out.print(vmsAtRow + "\t\t\t");
-            for (int j = 0; j < results[i].length; j++) {
-                System.out.printf("%.2f%%\t\t\t", results[i][j]);
-            }
-            System.out.println();
-        }
+//        System.out.println("numVMs\t Branch & Bound\t\tLinear Relaxation\t\tFirst Fit\t\tMost Full\t\tLeast Full\t\tRandom");
+//
+//        for (int i = 0; i < results.length; i++) {
+//            int vmsAtRow = START_VMS + i * INCREMENT_VAL;
+//            System.out.print(vmsAtRow + "\t\t\t");
+//            for (int j = 0; j < results[i].length; j++) {
+//                System.out.printf("%.2f%%\t\t\t", results[i][j]);
+//            }
+//            System.out.println();
+//        }
     }
 }
 
