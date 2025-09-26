@@ -4,21 +4,13 @@ import matplotlib.pyplot as plt
 
 # ---------------- paths ----------------
 FILES = {
-    "FirstFit":        "CSV Files/SelectionPolicyFirstFit.csv",
-    "MostFull":        "CSV Files/SelectionPolicyMostFull.csv",
-    "LeastFull":       "CSV Files/SelectionPolicyLeastFull.csv",
     "BranchAndBound":  "CSV Files/BranchAndBoundAlgorithm.csv",
     "LinearRelaxation":  "CSV Files/LinearRelaxationAlgorithm.csv",
 }
 
 # metric column -> pretty title
 METRICS = [
-    ("allocRate",  "Allocation Rate"),
-    ("cpuUtilRate","CPU Utilization Rate"),
-    ("ramUtilRate","RAM Utilization Rate"),
-    ("netUtilRate","Network Utilization Rate"),
-    ("diskUtilRate","Disk Utilization Rate"),
-    ("migrationRate","Migration Rate"),
+    ("migrations","Migrations"),
 ]
 
 STYLES = {
@@ -144,11 +136,6 @@ def make_summary_table():
                 sub[["algo"] + [m[0] for m in METRICS]]
                 .rename(columns={
                     "algo": "Algorithm",
-                    "allocRate": "AllocRate(%)",
-                    "cpuUtilRate": "CPU(%)",
-                    "ramUtilRate": "RAM(%)",
-                    "netUtilRate": "Net(%)",
-                    "diskUtilRate": "Disk(%)",
                     "migrationRate": "MigRate(%)"
                 })
                 .to_markdown(index=False)
