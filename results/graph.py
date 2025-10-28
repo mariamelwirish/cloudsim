@@ -7,8 +7,12 @@ FILES = {
     "FirstFit":        "CSV Files/SelectionPolicyFirstFit.csv",
     "MostFull":        "CSV Files/SelectionPolicyMostFull.csv",
     "LeastFull":       "CSV Files/SelectionPolicyLeastFull.csv",
-    "BranchAndBound":  "CSV Files/BranchAndBoundAlgorithm.csv",
+    # "BranchAndBound":  "CSV Files/BranchAndBoundAlgorithm.csv",
     "LinearRelaxation":  "CSV Files/LinearRelaxationAlgorithm.csv",
+    "DRF":  "CSV Files/DRF_Dynamic_Greedy_Algorithm.csv",
+    "L2": "CSV Files/DRF_Dynamic_L2_Algorithm.csv",
+    "SC" : "CSV Files/DRF_Scarcity_Weighted_Algorithm.csv",
+    # "SC2" : "CSV Files/DRFScarcityAlgorithmTwo.csv",
 }
 
 # metric column -> pretty title
