@@ -10,7 +10,7 @@ FILES = {
     "LeastFull":       "CSV Files/SelectionPolicyLeastFull.csv",
     "BranchAndBound":  "CSV Files/BranchAndBoundAlgorithm.csv",
     "LinearRelaxation":  "CSV Files/LinearRelaxationAlgorithm.csv",
-    "DRF":  "CSV Files/DRFScarcityAlgorithm.csv",
+    "DRF-Scarcity":  "CSV Files/DRFScarcityAlgorithm.csv",
 
 }
 
@@ -29,6 +29,8 @@ STYLES = {
     "MostFull":       dict(linestyle="--",  marker="s", linewidth=2),
     "LeastFull":      dict(linestyle="-.",  marker="*", linewidth=2),
     "BranchAndBound": dict(linestyle= "-", marker="o", linewidth=2),
+    "LinearRelaxation": dict(linestyle= "-", marker="*", linewidth=2),
+    "DRF-Scarcity": dict(linestyle= "-", marker="s", linewidth=2),
 }
 
 IMAGES_DIR = "images"
