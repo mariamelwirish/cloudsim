@@ -8,7 +8,7 @@ FILES = {
     "FirstFit":        "CSV Files/SelectionPolicyFirstFit.csv",
     "MostFull":        "CSV Files/SelectionPolicyMostFull.csv",
     "LeastFull":       "CSV Files/SelectionPolicyLeastFull.csv",
-    "BranchAndBound":  "CSV Files/BranchAndBoundAlgorithm.csv",
+    "BranchAndCut":  "CSV Files/BranchAndBoundAlgorithm.csv",
     "LinearRelaxation":  "CSV Files/LinearRelaxationAlgorithm.csv",
     "DRF-Scarcity":  "CSV Files/DRFScarcityAlgorithm.csv",
 
@@ -96,7 +96,7 @@ def plot_metric(col, title):
         plt.xticks(xticks, [str(int(t)) for t in xticks])
 
 
-    plt.title(f"{title} vs #VMs (over 4 Hosts)")
+    plt.title(f"{title} vs #VMs (over 3 Hosts)")
     plt.xlabel("#VMs")
     plt.ylabel(f"{title} (%)")
     plt.grid(True, alpha=0.5)
