@@ -1,18 +1,17 @@
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # ---------------- paths ----------------
 FILES = {
     "FirstFit":        "CSV Files/SelectionPolicyFirstFit.csv",
     "MostFull":        "CSV Files/SelectionPolicyMostFull.csv",
     "LeastFull":       "CSV Files/SelectionPolicyLeastFull.csv",
-    # "BranchAndBound":  "CSV Files/BranchAndBoundAlgorithm.csv",
+    "BranchAndBound":  "CSV Files/BranchAndBoundAlgorithm.csv",
     "LinearRelaxation":  "CSV Files/LinearRelaxationAlgorithm.csv",
-    "DRF":  "CSV Files/DRF_Dynamic_Greedy_Algorithm.csv",
-    "L2": "CSV Files/DRF_Dynamic_L2_Algorithm.csv",
-    "SC" : "CSV Files/DRF_Scarcity_Weighted_Algorithm.csv",
-    # "SC2" : "CSV Files/DRFScarcityAlgorithmTwo.csv",
+    "DRF":  "CSV Files/DRFScarcityAlgorithm.csv",
+
 }
 
 # metric column -> pretty title
@@ -26,10 +25,10 @@ METRICS = [
 ]
 
 STYLES = {
-    "FirstFit":       dict(linestyle=(0,(3,1,1,1)),   marker="o", linewidth=2),
+    "FirstFit":       dict(linestyle=(0,(3,1,1,1)),   marker="x", linewidth=2),
     "MostFull":       dict(linestyle="--",  marker="s", linewidth=2),
     "LeastFull":      dict(linestyle="-.",  marker="*", linewidth=2),
-    "BranchAndBound": dict(linestyle= "-", marker="x", linewidth=2),
+    "BranchAndBound": dict(linestyle= "-", marker="o", linewidth=2),
 }
 
 IMAGES_DIR = "images"
@@ -84,9 +83,16 @@ def plot_metric(col, title):
         plt.close()
         return
 
+
     ticks = sorted(all_ticks)
     if ticks:
-        plt.xticks(ticks, [str(int(t)) for t in ticks])  # force integer tick labels
+        xmin, xmax = min(ticks), max(ticks)
+
+        step = 6
+        xticks = np.arange(xmin, xmax + step, step)
+
+        plt.xticks(xticks, [str(int(t)) for t in xticks])
+
 
     plt.title(f"{title} vs #VMs (over 4 Hosts)")
     plt.xlabel("#VMs")
