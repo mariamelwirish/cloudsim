@@ -10,10 +10,10 @@ import java.util.*;
 import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.flag;
 import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.getScarcityIndicator;
 
-public class DRFScarcityAlgorithm {
-    public DRFScarcityAlgorithm(double[] C, double[] M, double[] N, double[] D,
-                                           double[] c, double[] m, double[] n, double[] d,
-                                           int numHosts, int numVMs) throws IOException {
+public class DRFScarcityAlgorithmTwo {
+    public DRFScarcityAlgorithmTwo(double[] C, double[] M, double[] N, double[] D,
+                                   double[] c, double[] m, double[] n, double[] d,
+                                   int numHosts, int numVMs) throws IOException {
 
         System.out.println("\n=================================================================");
         System.out.println("DRF + Scarcity-Weighted Greedy Algorithm");
@@ -81,6 +81,106 @@ public class DRFScarcityAlgorithm {
         final double ALPHA = 0.7; // 70% fairness, 30% scarcity
         final double EPSILON = 0.001; // To avoid division by zero
 
+        // ==================== STEP 4.1: Calculate Scarcity Weights (λ) ====================
+        // λ_k = 1 / (ε + avg_i(Γᵢ,ₖ / Cᵢ,ₖ))
+        // Higher λ = more scarce resource
+
+        double avgRemainingCPU = 0, avgRemainingRAM = 0, avgRemainingNet = 0, avgRemainingDisk = 0;
+
+        for (int i = 0; i < numHosts; i++) {
+            avgRemainingCPU += remainingCPU[i] / C[i]; // Fraction remaining
+            avgRemainingRAM += remainingRAM[i] / M[i];
+            avgRemainingNet += remainingNet[i] / N[i];
+            avgRemainingDisk += remainingDisk[i] / D[i];
+        }
+
+        avgRemainingCPU /= numHosts;
+        avgRemainingRAM /= numHosts;
+        avgRemainingNet /= numHosts;
+        avgRemainingDisk /= numHosts;
+
+        // Calculate scarcity weights (inverse of remaining fraction)
+        double lambdaCPU = 1.0 / (EPSILON + avgRemainingCPU);
+        double lambdaRAM = 1.0 / (EPSILON + avgRemainingRAM);
+        double lambdaNet = 1.0 / (EPSILON + avgRemainingNet);
+        double lambdaDisk = 1.0 / (EPSILON + avgRemainingDisk);
+
+        System.out.println("Current Resource Scarcity Weights (λ):");
+        System.out.printf("  λ_CPU:  %.4f (avg remaining: %.1f%%)  %s\n",
+                lambdaCPU, avgRemainingCPU * 100, getScarcityIndicator(avgRemainingCPU));
+        System.out.printf("  λ_RAM:  %.4f (avg remaining: %.1f%%)  %s\n",
+                lambdaRAM, avgRemainingRAM * 100, getScarcityIndicator(avgRemainingRAM));
+        System.out.printf("  λ_Net:  %.4f (avg remaining: %.1f%%)  %s\n",
+                lambdaNet, avgRemainingNet * 100, getScarcityIndicator(avgRemainingNet));
+        System.out.printf("  λ_Disk: %.4f (avg remaining: %.1f%%)  %s\n\n",
+                lambdaDisk, avgRemainingDisk * 100, getScarcityIndicator(avgRemainingDisk));
+
+
+        // ==================== STEP 4.2: Calculate Score for Each Unallocated VM ====================
+        System.out.println("Computing VM scores (qₘ = α×DRF + (1-α)×ScarcityWeighted):");
+        System.out.println("VM\tNorm CPU\tNorm RAM\tNorm Net\tNorm Disk\tDRF\tWeighted\tFinal Score (qₘ)");
+        System.out.println("─────────────────────────────────────────────────────────────────────────────────────────────────");
+
+        List<AlgorithmsComparison.VMWithScore> vmScores = new ArrayList<>();
+
+        avgCPU = 0; avgRAM = 0; avgNet = 0; avgDisk = 0;
+        for (int i = 0; i < numHosts; i++) {
+            avgCPU += C[i] - remainingCPU[i];
+            avgRAM += M[i] - remainingRAM[i];
+            avgNet += N[i] -  remainingNet[i];
+            avgDisk += D[i] -  remainingDisk[i];
+        }
+
+        avgCPU /= numHosts;
+        avgRAM /= numHosts;
+        avgNet /= numHosts;
+        avgDisk /= numHosts;
+
+        for (int j : unallocatedVMs) {
+            // Step 1: Normalize VM demands by average host capacity
+            double normCPU = c[j] / avgCPU;
+            double normRAM = m[j] / avgRAM;
+            double normNet = n[j] / avgNet;
+            double normDisk = d[j] / avgDisk;
+
+            // Step 2: Calculate Dominant Resource Fairness (DRF)
+            double drf = Math.max(
+                    Math.max(normCPU, normRAM),
+                    Math.max(normNet, normDisk)
+            );
+
+            // Step 3: Calculate Scarcity-Weighted Sum
+            double scarcityWeighted = lambdaCPU * normCPU +
+                    lambdaRAM * normRAM +
+                    lambdaNet * normNet +
+                    lambdaDisk * normDisk;
+
+            // Step 4: Combine into final score
+            // qₘ = α × DRF + (1-α) × ScarcityWeighted
+            double finalScore = ALPHA * drf + (1 - ALPHA) * scarcityWeighted;
+
+            vmScores.add(new AlgorithmsComparison.VMWithScore(j, finalScore, drf, scarcityWeighted));
+
+            System.out.printf("VM%d\t%.4f\t\t%.4f\t\t%.4f\t\t%.4f\t\t%.4f\t%.4f\t\t%.4f\n",
+                    j, normCPU, normRAM, normNet, normDisk, drf, scarcityWeighted, finalScore);
+        }
+
+
+        // ==================== STEP 4.3: Sort VMs by Score (Ascending) ====================
+        Collections.sort(vmScores); // Smallest score first (easiest/fairest)
+
+        System.out.println("\nSorted VM order (lowest qₘ first - easiest to place):");
+        for (int i = 0; i < Math.min(5, vmScores.size()); i++) {
+            AlgorithmsComparison.VMWithScore vm = vmScores.get(i);
+            System.out.printf("  %d. VM%d (qₘ=%.4f, DRF=%.4f, Scarcity=%.4f)\n",
+                    i+1, vm.vmIndex, vm.score, vm.drf, vm.scarcityWeighted);
+        }
+        if (vmScores.size() > 5) {
+            System.out.printf("  ... and %d more VMs\n", vmScores.size() - 5);
+        }
+        System.out.println();
+
+
 
         // ==================== STEP 4: Dynamic Allocation Loop ====================
         int iteration = 0;
@@ -95,108 +195,10 @@ public class DRFScarcityAlgorithm {
             System.out.println("\"=================================================================\n");
 
 
-            // ==================== STEP 4.1: Calculate Scarcity Weights (λ) ====================
-            // λ_k = 1 / (ε + avg_i(Γᵢ,ₖ / Cᵢ,ₖ))
-            // Higher λ = more scarce resource
-
-            double avgRemainingCPU = 0, avgRemainingRAM = 0, avgRemainingNet = 0, avgRemainingDisk = 0;
-
-            for (int i = 0; i < numHosts; i++) {
-                avgRemainingCPU += remainingCPU[i] / C[i]; // Fraction remaining
-                avgRemainingRAM += remainingRAM[i] / M[i];
-                avgRemainingNet += remainingNet[i] / N[i];
-                avgRemainingDisk += remainingDisk[i] / D[i];
-            }
-
-            avgRemainingCPU /= numHosts;
-            avgRemainingRAM /= numHosts;
-            avgRemainingNet /= numHosts;
-            avgRemainingDisk /= numHosts;
-
-            // Calculate scarcity weights (inverse of remaining fraction)
-            double lambdaCPU = 1.0 / (EPSILON + avgRemainingCPU);
-            double lambdaRAM = 1.0 / (EPSILON + avgRemainingRAM);
-            double lambdaNet = 1.0 / (EPSILON + avgRemainingNet);
-            double lambdaDisk = 1.0 / (EPSILON + avgRemainingDisk);
-
-            System.out.println("Current Resource Scarcity Weights (λ):");
-            System.out.printf("  λ_CPU:  %.4f (avg remaining: %.1f%%)  %s\n",
-                    lambdaCPU, avgRemainingCPU * 100, getScarcityIndicator(avgRemainingCPU));
-            System.out.printf("  λ_RAM:  %.4f (avg remaining: %.1f%%)  %s\n",
-                    lambdaRAM, avgRemainingRAM * 100, getScarcityIndicator(avgRemainingRAM));
-            System.out.printf("  λ_Net:  %.4f (avg remaining: %.1f%%)  %s\n",
-                    lambdaNet, avgRemainingNet * 100, getScarcityIndicator(avgRemainingNet));
-            System.out.printf("  λ_Disk: %.4f (avg remaining: %.1f%%)  %s\n\n",
-                    lambdaDisk, avgRemainingDisk * 100, getScarcityIndicator(avgRemainingDisk));
-
-
-            // ==================== STEP 4.2: Calculate Score for Each Unallocated VM ====================
-            System.out.println("Computing VM scores (qₘ = α×DRF + (1-α)×ScarcityWeighted):");
-            System.out.println("VM\tNorm CPU\tNorm RAM\tNorm Net\tNorm Disk\tDRF\tWeighted\tFinal Score (qₘ)");
-            System.out.println("─────────────────────────────────────────────────────────────────────────────────────────────────");
-
-            List<AlgorithmsComparison.VMWithScore> vmScores = new ArrayList<>();
-
-            avgCPU = 0; avgRAM = 0; avgNet = 0; avgDisk = 0;
-            for (int i = 0; i < numHosts; i++) {
-                avgCPU += C[i] - remainingCPU[i];
-                avgRAM += M[i] - remainingRAM[i];
-                avgNet += N[i] -  remainingNet[i];
-                avgDisk += D[i] -  remainingDisk[i];
-            }
-
-            avgCPU /= numHosts;
-            avgRAM /= numHosts;
-            avgNet /= numHosts;
-            avgDisk /= numHosts;
-
-            for (int j : unallocatedVMs) {
-                // Step 1: Normalize VM demands by average host capacity
-                double normCPU = c[j] / avgCPU;
-                double normRAM = m[j] / avgRAM;
-                double normNet = n[j] / avgNet;
-                double normDisk = d[j] / avgDisk;
-
-                // Step 2: Calculate Dominant Resource Fairness (DRF)
-                double drf = Math.max(
-                        Math.max(normCPU, normRAM),
-                        Math.max(normNet, normDisk)
-                );
-
-                // Step 3: Calculate Scarcity-Weighted Sum
-                double scarcityWeighted = lambdaCPU * normCPU +
-                        lambdaRAM * normRAM +
-                        lambdaNet * normNet +
-                        lambdaDisk * normDisk;
-
-                // Step 4: Combine into final score
-                // qₘ = α × DRF + (1-α) × ScarcityWeighted
-                double finalScore = ALPHA * drf + (1 - ALPHA) * scarcityWeighted;
-
-                vmScores.add(new AlgorithmsComparison.VMWithScore(j, finalScore, drf, scarcityWeighted));
-
-                System.out.printf("VM%d\t%.4f\t\t%.4f\t\t%.4f\t\t%.4f\t\t%.4f\t%.4f\t\t%.4f\n",
-                        j, normCPU, normRAM, normNet, normDisk, drf, scarcityWeighted, finalScore);
-            }
-
-
-            // ==================== STEP 4.3: Sort VMs by Score (Ascending) ====================
-            Collections.sort(vmScores); // Smallest score first (easiest/fairest)
-
-            System.out.println("\nSorted VM order (lowest qₘ first - easiest to place):");
-            for (int i = 0; i < Math.min(5, vmScores.size()); i++) {
-                AlgorithmsComparison.VMWithScore vm = vmScores.get(i);
-                System.out.printf("  %d. VM%d (qₘ=%.4f, DRF=%.4f, Scarcity=%.4f)\n",
-                        i+1, vm.vmIndex, vm.score, vm.drf, vm.scarcityWeighted);
-            }
-            if (vmScores.size() > 5) {
-                System.out.printf("  ... and %d more VMs\n", vmScores.size() - 5);
-            }
-            System.out.println();
-
-
             // ==================== STEP 4.4: Select VM with Lowest Score ====================
+
             AlgorithmsComparison.VMWithScore selectedVM = vmScores.get(0);
+            vmScores.remove(selectedVM);
             int j = selectedVM.vmIndex;
 
             System.out.println("─────────────────────────────────────────────────────────────────");
@@ -383,7 +385,7 @@ public class DRFScarcityAlgorithm {
 
 
         // ==================== STEP 7: Write to CSV ====================
-        final String file = "DRFScarcityAlgorithm.csv";
+        final String file = "DRFScarcityAlgorithmTwo.csv";
         Path RESULTS_DIR = Paths.get("../results/CSV Files/");
         java.nio.file.Files.createDirectories(RESULTS_DIR);
         Path outFile = RESULTS_DIR.resolve(file);
