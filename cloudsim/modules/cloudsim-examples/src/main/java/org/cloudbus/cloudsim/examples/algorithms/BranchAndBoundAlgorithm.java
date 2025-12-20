@@ -1,5 +1,6 @@
 package org.cloudbus.cloudsim.examples.algorithms;
 
+import org.cloudbus.cloudsim.examples.AlgorithmsComparison;
 import scpsolver.constraints.LinearSmallerThanEqualsConstraint;
 import scpsolver.lpsolver.LinearProgramSolver;
 import scpsolver.lpsolver.SolverFactory;
@@ -82,6 +83,8 @@ public class BranchAndBoundAlgorithm {
 
         if (solution == null) {
             System.out.println("B&B did not finish within 20s. Falling back to Linear Relaxation...");
+            if(AlgorithmsComparison.NUM_VMS >= 50)
+                AlgorithmsComparison.FALLBACK++;
             new LinearRelaxationAlgorithm(C, M, N, D, c, m, n, d, numHosts, numVMs, true);
             return;
         }

@@ -31,11 +31,13 @@ public class AlgorithmsComparison {
 
     /** Global Variables for all algorithms **/
     // General
-    static int NUM_HOSTS =3;
-    static int NUM_VMS = 3;
-    static int MAX_VMS = 100;
-    static int INCREMENT_VAL = 3;
-    static int MONTE_CARLO_ITERS = 1000;
+    public static int NUM_HOSTS =6;
+    public static int NUM_VMS = 3;
+    public static int MAX_VMS = 100;
+    public static int INCREMENT_VAL = 3;
+    public static int MONTE_CARLO_ITERS = 2;
+    public static int TOTAL_ITERS = 0;
+    public static int FALLBACK = 0;
 
     // Hosts Specs
     static double[] C;
@@ -353,16 +355,18 @@ public class AlgorithmsComparison {
                 algorithm(new SelectionPolicyFirstFit<>());
                 algorithm(new SelectionPolicyMostFull<>());
                 algorithm(new SelectionPolicyLeastFull<>());
+//                algorithm(new SelectionPolicyRandomSelection<>());
                 new BranchAndBoundAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
                 new LinearRelaxationAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS, false);
                 new DRFScarcityAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
-//                sumRD += algorithm(new SelectionPolicyRandomSelection<>());
+                new DRFScarcityAlgorithmTwo(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
                 if(!flag) flag = true;
+                TOTAL_ITERS++;
             }
         }
         flag = false;
 
-
+        System.out.println("Fallbacks = " + FALLBACK + " / " + TOTAL_ITERS);
     }
 }
 
