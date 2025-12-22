@@ -7,8 +7,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
-import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.flag;
-import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.getScarcityIndicator;
+import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.*;
+import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.lrMig;
 
 public class DRFScarcityAlgorithm {
     public DRFScarcityAlgorithm(double[] C, double[] M, double[] N, double[] D,
@@ -49,6 +49,7 @@ public class DRFScarcityAlgorithm {
             avgRAM += M[i];
             avgNet += N[i];
             avgDisk += D[i];
+            System.out.println("Host " + i+1 + ": " + C[i] + " " + M[i] + " " + N[i] + " " + D[i]);
         }
 
         avgCPU /= numHosts;
@@ -139,10 +140,10 @@ public class DRFScarcityAlgorithm {
 
             avgCPU = 0; avgRAM = 0; avgNet = 0; avgDisk = 0;
             for (int i = 0; i < numHosts; i++) {
-                avgCPU += C[i] - remainingCPU[i];
-                avgRAM += M[i] - remainingRAM[i];
-                avgNet += N[i] -  remainingNet[i];
-                avgDisk += D[i] -  remainingDisk[i];
+                avgCPU += remainingCPU[i];
+                avgRAM += remainingRAM[i];
+                avgNet += remainingNet[i];
+                avgDisk += remainingDisk[i];
             }
 
             avgCPU /= numHosts;
@@ -156,6 +157,8 @@ public class DRFScarcityAlgorithm {
                 double normRAM = m[j] / avgRAM;
                 double normNet = n[j] / avgNet;
                 double normDisk = d[j] / avgDisk;
+
+
 
                 // Step 2: Calculate Dominant Resource Fairness (DRF)
                 double drf = Math.max(
@@ -260,6 +263,13 @@ public class DRFScarcityAlgorithm {
 
             // ==================== STEP 4.6: Allocate to Best Host ====================
             if (bestHost != -1) {
+                if(drfMig[j] == -1) {
+                    drfMig[j] = bestHost;
+                }
+                else if(drfMig[j] != bestHost) {
+                    drfMig[j] = bestHost;
+                    migrations++;
+                }
                 // ALLOCATE
                 allocated[j] = true;
                 numAllocated++;
@@ -274,12 +284,12 @@ public class DRFScarcityAlgorithm {
                 unallocatedVMs.remove(j);
 
                 // Track migrations
-                if (drfScarcityMig[j] == -1) {
-                    drfScarcityMig[j] = bestHost;
-                } else if (drfScarcityMig[j] != bestHost) {
-                    drfScarcityMig[j] = bestHost;
-                    migrations++;
-                }
+//                if (drfScarcityMig[j] == -1) {
+//                    drfScarcityMig[j] = bestHost;
+//                } else if (drfScarcityMig[j] != bestHost) {
+//                    drfScarcityMig[j] = bestHost;
+//                    migrations++;
+//                }
 
                 double avgUtilization = ((C[bestHost]-remainingCPU[bestHost])/C[bestHost] +
                         (M[bestHost]-remainingRAM[bestHost])/M[bestHost] +
@@ -379,7 +389,8 @@ public class DRFScarcityAlgorithm {
             }
         }
 
-        System.out.println("═════════════════════════════════════════════════════════════════\n");
+        System.out.println("Migrations: " + migrations + " out of " + numVMs + " VMs");
+        System.out.println("Migration Rate: " + String.format("%.2f%%", migrationRate));
 
 
         // ==================== STEP 7: Write to CSV ====================

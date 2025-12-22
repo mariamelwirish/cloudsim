@@ -31,11 +31,11 @@ public class AlgorithmsComparison {
 
     /** Global Variables for all algorithms **/
     // General
-    public static int NUM_HOSTS =6;
+    public static int NUM_HOSTS =3;
     public static int NUM_VMS = 3;
-    public static int MAX_VMS = 100;
+    public static int MAX_VMS =100;
     public static int INCREMENT_VAL = 3;
-    public static int MONTE_CARLO_ITERS = 2;
+    public static int MONTE_CARLO_ITERS = 1000;
     public static int TOTAL_ITERS = 0;
     public static int FALLBACK = 0;
 
@@ -53,10 +53,13 @@ public class AlgorithmsComparison {
 
     // Flag for CSVWriter append
     public static boolean flag;
+    public static boolean fflag;
 
-    static int [] bbMig;
-    static int [] lrMig;
-    static int [] lrrMig;
+    public static int ITER;
+
+    public static int [] bbMig;
+    public static int [] lrMig;
+    public static int [] drfMig;
 
     static int [] lfMig;
 
@@ -334,9 +337,20 @@ public class AlgorithmsComparison {
 
 
     public static void main(String[] args) throws IOException {
+        long startTime = System.nanoTime();
+        flag = false;
+        fflag = false;
+        ITER = 0;
         int START_VMS = NUM_VMS;
-        for (int t = 0; t < MONTE_CARLO_ITERS; t++) {
+        for (; ITER < MONTE_CARLO_ITERS; ITER++) {
             NUM_VMS = START_VMS;
+
+            bbMig = new int[MAX_VMS+1];
+            lrMig = new int[MAX_VMS+1];
+            drfMig = new int[MAX_VMS+1];
+            Arrays.fill(bbMig, -1);
+            Arrays.fill(lrMig, -1);
+            Arrays.fill(drfMig, -1);
 
             // Host Specs
             C = new double[NUM_HOSTS];
@@ -349,24 +363,31 @@ public class AlgorithmsComparison {
             m = new double[MAX_VMS+1];
             n = new double[MAX_VMS+1];
             d = new double[MAX_VMS+1];
+
             randomizeSpecs();
             for(; NUM_VMS <= MAX_VMS; NUM_VMS += INCREMENT_VAL) {
+                if(NUM_VMS >= 50) TOTAL_ITERS++;
                 System.out.println("  Testing with " +  NUM_VMS  + " VMs");
                 algorithm(new SelectionPolicyFirstFit<>());
                 algorithm(new SelectionPolicyMostFull<>());
                 algorithm(new SelectionPolicyLeastFull<>());
-//                algorithm(new SelectionPolicyRandomSelection<>());
+////                algorithm(new SelectionPolicyRandomSelection<>());
                 new BranchAndBoundAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
                 new LinearRelaxationAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS, false);
                 new DRFScarcityAlgorithm(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
-                new DRFScarcityAlgorithmTwo(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
-                if(!flag) flag = true;
-                TOTAL_ITERS++;
+//                new DRFScarcityAlgorithmTwo(C, M, N, D, c, m, n, d, NUM_HOSTS, NUM_VMS);
+                flag = true;
             }
         }
         flag = false;
 
         System.out.println("Fallbacks = " + FALLBACK + " / " + TOTAL_ITERS);
+
+        long endTime = System.nanoTime();
+        long durationNs = endTime - startTime;
+
+        double durationSeconds = durationNs / 1_000_000_000.0;
+        System.out.println("Total runtime: " + durationSeconds + " seconds");
     }
 }
 

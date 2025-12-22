@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.flag;
+import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.lrMig;
 
 public class LinearRelaxationAlgorithm {
 
@@ -208,6 +209,14 @@ public class LinearRelaxationAlgorithm {
                     System.out.println("  VM " + j + " assigned to Host " + (i + 1) +
                             " (LP value: " + String.format("%.3f", alloc.allocationValue) + ")");
 
+                    if(lrMig[j] == -1) {
+                        lrMig[j] = i;
+                    }
+                    else if(lrMig[j] != i) {
+                        lrMig[j] = i;
+                        migrations++;
+                    }
+
 
                 }
             }
@@ -271,6 +280,13 @@ public class LinearRelaxationAlgorithm {
                     System.out.println("  VM " + j + " assigned to Host " + (i + 1) +
                             " (Most-Full, LP value: " + String.format("%.3f", alloc.allocationValue) + ")");
 
+                    if(lrMig[j] == -1) {
+                        lrMig[j] = i;
+                    }
+                    else if(lrMig[j] != i) {
+                        lrMig[j] = i;
+                        migrations++;
+                    }
 
                     break; // move to next VM
                 }

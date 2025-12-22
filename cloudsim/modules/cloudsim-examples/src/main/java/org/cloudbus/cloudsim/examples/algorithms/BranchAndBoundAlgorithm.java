@@ -6,11 +6,12 @@ import scpsolver.lpsolver.LinearProgramSolver;
 import scpsolver.lpsolver.SolverFactory;
 import scpsolver.problems.LinearProgram;
 
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.flag;
+import static org.cloudbus.cloudsim.examples.AlgorithmsComparison.*;
 
 public class BranchAndBoundAlgorithm {
     public BranchAndBoundAlgorithm(double[] C, double[] M, double[] N, double[] D, double[] c, double[] m, double[] n, double[] d, int numHosts, int numVMs) throws IOException {
@@ -83,8 +84,16 @@ public class BranchAndBoundAlgorithm {
 
         if (solution == null) {
             System.out.println("B&B did not finish within 20s. Falling back to Linear Relaxation...");
-            if(AlgorithmsComparison.NUM_VMS >= 50)
+            if(AlgorithmsComparison.NUM_VMS >= 50) {
                 AlgorithmsComparison.FALLBACK++;
+                try (FileWriter fw = new FileWriter("../results/falls.txt", fflag)) {
+                    fw.write(ITER + "," + NUM_VMS + "\n");
+                    fflag = true;
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
             new LinearRelaxationAlgorithm(C, M, N, D, c, m, n, d, numHosts, numVMs, true);
             return;
         }
@@ -118,6 +127,14 @@ public class BranchAndBoundAlgorithm {
                 for (int j = 0; j < numVMs; j++) {
                     int varIndex = i * numVMs + j;
                     if (solution[varIndex] >= 0.5) {  // Binary variable, check if assigned
+                        if(bbMig[j] == -1) {
+                            bbMig[j] = i;
+                        }
+                        else if(bbMig[j] != i) {
+                            bbMig[j] = i;
+                            migrations++;
+                        }
+
                         System.out.println("  VM " + (j) + " assigned");
                         totalAllocated++;
                     }
