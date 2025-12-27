@@ -80,7 +80,17 @@ public class BranchAndBoundAlgorithm {
         System.out.println("\nBranch and Bound: \n");
         LinearProgramSolver solver = SolverFactory.newDefault();
         solver.setTimeconstraint(20);
-        double[] solution = solver.solve(lp);
+
+        double[] solution = null;
+
+        try {
+            solution = solver.solve(lp);
+        } catch (Throwable t) {
+            // Catch EVERYTHING: Exception, Error, AssertionError
+            System.out.println("B&B solver crashed: " + t.getClass().getSimpleName());
+            System.out.println("Falling back to Linear Relaxation...");
+        }
+
 
         if (solution == null) {
             System.out.println("B&B did not finish within 20s. Falling back to Linear Relaxation...");
